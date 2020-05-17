@@ -11,8 +11,9 @@ from ml.utility import label_map_2_one_hot, add_bias
 from tqdm.autonotebook import tqdm
 
 class YaleFaceResampleVectorizer(Vectorizer):
-    def __init__(self):
+    def __init__(self, add_bias=True):
         self._label_map = {}
+        self._add_bias = add_bias
 
     def index_vectorizer(self, reader: DatasetReader):
         X = []
@@ -42,16 +43,23 @@ class YaleFaceResampleVectorizer(Vectorizer):
         x = YaleFaceResampleVectorizer._flatten_and_resize_img(input)
         x_norm = (x-self._means)/self._std
         x_norm[self._feature_mask] = 0
-        return add_bias(x_norm)
+        if self._add_bias:
+            return add_bias(x_norm)
+        else:
+            return x_norm
 
     def vectorize_label(self, label: Any) -> np.ndarray:
         return label_map_2_one_hot(label, self._label_map)
 
+    @property
     def output_size(self) -> int:
         return len(self._label_map)
 
+    @property
     def input_size(self) -> int:
-        return 1601
+        if self._add_bias:
+            return 1601
+        return 1600
 
     @staticmethod
     def _flatten_and_resize_img(img):

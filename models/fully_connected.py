@@ -38,6 +38,9 @@ class FullyConnectedANN(Model):
             h = l.predict(h)
         return h
 
+    def backward(self) -> None:
+        pass
+
     def update(self, gradients: np.ndarray, alpha: float) -> None:
         pass
 
@@ -52,11 +55,12 @@ class FullyConnectedLayer(Model):
         self._input_dim = input_dim
         self._output_dim = output_dim
         self._activation = activation
-        self._weights = weight_initializer(np.zeros((input_dim, output_dim)))
+        self._weights = weight_initializer.initialize(np.zeros((input_dim, output_dim)))
         self._bias = np.zeros((1, output_dim))
+        self._forward_cache = {}
         
         if(initialize_bias):
-            self._bias = weight_initializer(self._bias)
+            self._bias = weight_initializer.initialize(self._bias)
 
         if self._activation == 'linear':
             self._activation_fx = linear
@@ -66,10 +70,16 @@ class FullyConnectedLayer(Model):
     def predict(self, X: np.ndarray) -> np.ndarray:
         # make sure dimmenions match.
         assert X.shape[1] == self._weights.shape[0]
-        
-        return self._activation_fx(np.matmul(X, self._weights) + self._bias)
+        Z = np.matmul(X, self._weights) + self._bias
+        A = self._activation_fx(Z)
+        self._forward_cache['Z'] = Z 
+        self._forward_cache['A'] = A
+        return A
 
     def update(self, gradients: np.ndarray, alpha: float) -> None:
+        pass
+
+    def backward(self) -> None:
         pass
 
     @property

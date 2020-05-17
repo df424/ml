@@ -1,17 +1,17 @@
 
 from typing import Callable, List, Dict
-from ml.models import Model
-from ml.data.batchers import Batcher
-from ml.modules.loss_functions import log_likelihood_sigmoid_update
 from tqdm.autonotebook import tqdm
 import numpy as np
 import sys
 
+from ml.models import Model
+from ml.data.batchers import Batcher
+from ml.modules.loss_functions import LossFunction
+
 class Trainer:
     def __init__(self, 
         model: Model, 
-        loss: Callable[[np.ndarray, np.ndarray], float],
-        update: Callable[[np.ndarray, np.ndarray, np.ndarray], None],
+        loss: LossFunction,
         train_batcher: Batcher,
         alpha: float,
         dev_batcher: Batcher=None,
@@ -21,7 +21,6 @@ class Trainer:
     ):
         self._model = model
         self._loss = loss
-        self._update = update
         self._train_batcher = train_batcher
         self._dev_batcher = dev_batcher
         self._epochs = epochs
@@ -109,17 +108,14 @@ class Trainer:
 
             # Update all our metrics.
             # calculate the loss...
-            epoch_loss += self._loss(y=Y, y_hat=Y_hat) * batch_size
+            epoch_loss += self._loss.scaler_loss(y=Y, y_hat=Y_hat) * batch_size
 
             # Other metrics.
             for mf in self._metric_functions:
                 epoch_metrics[mf.__name__] += mf(Y, Y_hat) * batch_size
 
             if(update_model):
-                self._model.update(
-                    gradients=self._update(X, Y, Y_hat), 
-                    alpha=self._alpha
-                )
+                self._model.backward(self._loss.gradient(Y, Y_hat), self._alpha)
 
         losses.append(epoch_loss/sample_count)
 

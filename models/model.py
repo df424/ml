@@ -8,5 +8,5 @@ class Model(ABC):
         pass
 
     @abstractmethod
-    def update(self, gradients: np.ndarray, alpha: float) -> None:
+    def backward(self, loss: np.ndarray, alpha: float) -> None:
         pass
