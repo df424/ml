@@ -14,4 +14,4 @@ class CrossEntropyLoss(LossFunction):
         return loss
 
     def gradient(self, y: np.ndarray, y_hat: np.ndarray) -> np.ndarray:
-        return y_hat-y
+        return (y_hat-y)
