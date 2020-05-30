@@ -1,5 +1,5 @@
 
-from typing import Tuple, List
+from typing import Tuple, List, Dict, Any
 import numpy as np
 
 from ml.models import Model
@@ -41,13 +41,26 @@ class FullyConnectedANN(Model):
             h = l.predict(h)
         return h
 
-    def backward(self, loss: np.ndarray, alpha: float) -> None:
+    def backward(self, loss: np.ndarray) -> None:
         dl = loss
         for l in reversed(self._layers):
-            dl = l.backward(dl, alpha)
-        
-        for l in self._layers:
-            l.update_weights(alpha, self._regularizer)
+            dl = l.backward(dl)
+
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        rv = {}
+        for i, l in enumerate(self._layers):
+            for k, p in l.parameters.items():
+                rv[f'layer_{i}_{k}'] = p
+        return rv
+
+    @property
+    def gradients(self) -> Dict[str, Any]:
+        rv = {}
+        for i, l in enumerate(self._layers):
+            for k, p in l.gradients.items():
+                rv[f'layer_{i}_{k}'] = p
+        return rv
 
 class FullyConnectedLayer(Model):
     def __init__(self, 
@@ -60,13 +73,16 @@ class FullyConnectedLayer(Model):
         self._input_dim = input_dim
         self._output_dim = output_dim
         self._activation = activation
-        self._weights = weight_initializer.initialize(np.zeros((input_dim, output_dim)))
-        self._bias = np.zeros((1, output_dim))
         self._forward_cache = {}
-        self._backward_cache = {}
+        self._parameters = {}
+        self._gradients = {}
+
+        # Initialize model parameters.
+        self._parameters['W'] = weight_initializer.initialize(np.zeros((input_dim, output_dim)))
+        self._parameters['b'] = np.zeros((1, output_dim))
         
         if(initialize_bias):
-            self._bias = weight_initializer.initialize(self._bias)
+            self._parameters['b'] = weight_initializer.initialize(self._parameters['b'])
 
         if self._activation == 'linear':
             self._activation_fx = linear
@@ -76,10 +92,14 @@ class FullyConnectedLayer(Model):
             raise ValueError('Activation function not implemented.')
 
     def predict(self, X: np.ndarray) -> np.ndarray:
+        # Get model parameters.
+        W = self._parameters['W']
+        b = self._parameters['b']
+
         # make sure dimmenions match.
-        assert X.shape[1] == self._weights.shape[0]
+        assert X.shape[1] == W.shape[0]
         #print(X.shape, self._weights.shape, self._bias.shape) 
-        Z = np.matmul(X, self._weights) + self._bias
+        Z = np.matmul(X, W) + b 
         A = self._activation_fx(Z)
         self._forward_cache['A_prev'] = X
         self._forward_cache['Z'] = Z 
@@ -92,7 +112,7 @@ class FullyConnectedLayer(Model):
         if self._activation == 'sigmoid':
             return a*(1 - a)
 
-    def backward(self, dL: np.ndarray, alpha: float) -> np.ndarray:
+    def backward(self, dL: np.ndarray) -> np.ndarray:
         A_prev = self._forward_cache['A_prev']
         Z = self._forward_cache['Z']
         A = self._forward_cache['A']
@@ -101,17 +121,19 @@ class FullyConnectedLayer(Model):
         db = np.mean(dz, axis=0, keepdims=True)
 
         # Cache the gradients for use by the optimizer.
-        self._backward_cache['dw'] = dw
-        self._backward_cache['db'] = db
+        self._gradients['W'] = dw
+        self._gradients['b'] = db
  
-        loss_output = np.matmul(dz, self._weights.T)
+        loss_output = np.matmul(dz, self._parameters['W'].T)
         return loss_output
 
-    def update_weights(self, alpha: float, regularizer: Regularizer):
-        self._weights -= alpha * self._backward_cache['dw']
-        if(regularizer):
-            regularizer.regularize(self._weights)
-        self._bias -= alpha * self._backward_cache['db']
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        return self._parameters
+
+    @property
+    def gradients(self) -> Dict[str, Any]:
+        return self._gradients
 
     @property
     def input_dim(self) -> int:
