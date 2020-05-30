@@ -7,13 +7,14 @@ import sys
 from ml.models import Model
 from ml.data.batchers import Batcher
 from ml.modules.loss_functions import LossFunction
+from ml.modules.optimizers import Optimizer
 
 class Trainer:
     def __init__(self, 
         model: Model, 
         loss: LossFunction,
         train_batcher: Batcher,
-        alpha: float,
+        optimizer: Optimizer,
         dev_batcher: Batcher=None,
         epochs: int = 1,
         metrics: List[Callable[[np.ndarray, np.ndarray], float]] = [],
@@ -24,7 +25,7 @@ class Trainer:
         self._train_batcher = train_batcher
         self._dev_batcher = dev_batcher
         self._epochs = epochs
-        self._alpha = alpha
+        self._optimizer = optimizer
         self._train_losses = []
         self._dev_losses = []
         self._metric_functions = metrics
@@ -115,7 +116,8 @@ class Trainer:
                 epoch_metrics[mf.__name__] += mf(Y, Y_hat) * batch_size
 
             if(update_model):
-                self._model.backward(self._loss.gradient(Y, Y_hat), self._alpha)
+                self._model.backward(self._loss.gradient(Y, Y_hat))
+                self._optimizer.update(self._model)
 
         losses.append(epoch_loss/sample_count)
 
