@@ -8,9 +8,10 @@ class SGDOptimizer(Optimizer):
         self._lr = learning_rate
         self._beta = beta
         self._momentums = {}
-        self._iteration = 1
+        self._iteration = 0
 
     def update(self, model: Model):
+        self._iteration += 1
         # For each parameter in our model.
         for k, param in model.parameters.items():
             # if we have a gradient for the parameter.
@@ -26,11 +27,10 @@ class SGDOptimizer(Optimizer):
                 V_dp = self._beta * self._momentums[k] + (1-self._beta) * dp
 
                 # Do bias correction.
-                V_dp = V_dp / (1-self._beta**self._iteration)
-                self._iteration += 1
+                V_dp_norm = V_dp / (1-self._beta**self._iteration)
 
                 # Store the momentum for next update.
                 self._momentums[k] = V_dp
 
                 # Actually update our parameters.
-                param -= self._lr * V_dp
+                param -= self._lr * V_dp_norm
