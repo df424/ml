@@ -6,7 +6,7 @@ from scipy.signal import convolve2d
 from ml.models import Model
 from ml.modules.initializers import Initializer
 
-class ConvolutionalLayer(Model):
+class ConvolutionalLayer2D(Model):
     def __init__(self, 
         kernel_shape:Tuple[int, int], 
         num_kernels: int, 
@@ -44,13 +44,17 @@ class ConvolutionalLayer(Model):
         return self._gradients
 
 
-class PoolingLayer(Model):
-    def __init__(self):
+class PoolingLayer2D(Model):
+    def __init__(self, shape:Tuple[int, int], stride: int, method:str='max', mode:str='valid'):
+        self._mode = mode
         self._parameters = {}
         self._gradients = {}
 
     def predict(self, X: np.ndarray) -> np.ndarray:
-        pass
+        if self._mode == 'valid':
+            pass
+        else:
+            raise ValueError(f'Unknown mode: {self._mode}')
 
     def backward(self, loss: np.ndarray) -> None:
         pass
