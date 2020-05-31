@@ -28,29 +28,32 @@ class ConvolutionalLayer2D(Model):
     def predict(self, X: np.ndarray) -> np.ndarray:
         self._cache['X'] = X
 
-        channels = []
+        output = []
+        for x in X:
+            channels = []
+            for kernel in self._parameters['K']:
+                channels.append(convolve2d(x, kernel, mode=self._mode))
 
-        for kernel in self._parameters['K']:
-            channels.append(convolve2d(X, kernel, mode=self._mode))
-
-        return np.array(channels)
+            output.append(np.array(channels))
+        return np.array(output)
 
     def backward(self, loss: np.ndarray) -> None:
-        # Loss should be the same size as our filters...
-        assert(loss.shape == self._parameters['K'].shape)
-
         # Get our input X.
         X = self._cache['X']
 
         # Create a tensor to store our gradients we know it will be the same size as our filters.
-        grads = np.zeros(loss.shape)
+        grads = np.zeros(self._parameters['K'].shape)
 
         # Iterate over our filters and compute the gradient for each one.
-        for i, l in enumerate(loss):
-            grads[i] = convolve2d(X, l, mode=self._mode)
+        for x, l in zip(X, loss):
+            for i in range(self._parameters['K'].shape[0]):
+                grads[i] += convolve2d(x, l[i], mode=self._mode)
+        # take the mean of all of the batched images.
+        grads = grads/X.shape[0]
 
         # Store our gradients in the cache so that the optimizer can do the updating.
         self._gradients['K'] = grads
+        return np.zeros(X.shape)
 
     @property
     def parameters(self) -> Dict[str, Any]:

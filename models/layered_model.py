@@ -13,15 +13,19 @@ class LayeredModel(Model):
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         h = X
-        for l in self._layers:
+        for i, l in enumerate(self._layers):
+            #print(f'LAYER{i} INPUT SHAPE: {h.shape}')
             h = l.predict(h)
+            #print(f'LAYER{i} OUTPUT SHAPE: {h.shape}')
         return h
 
     def backward(self, loss: np.ndarray) -> None:
         # Starting with loss calcualted from the objective function propegate back.
         dl = loss
-        for l in reversed(self._layers):
+        for i, l in enumerate(reversed(self._layers)):
+            #print(f'BACKPROP LAYER{len(self._layers)-i-1} INPUT SHAPE: {dl.shape}')
             dl = l.backward(dl)
+            #print(f'BACKPROP LAYER{len(self._layers)-i-1} OUTPUT SHAPE: {dl.shape}')
 
     @property
     def parameters(self) -> Dict[str, Any]:

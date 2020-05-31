@@ -15,12 +15,14 @@ class BucketBatcher(Batcher):
         vectorizer: Vectorizer,
         batch_size: int,
         shuffle: bool = False,
-        cache_after_first: bool = False
+        cache_after_first: bool = False,
+        batch_method='concat',
         ):
 
         self._reader = reader
         self._vectorizer = vectorizer
         self._batch_size = batch_size
+        self._batch_method = batch_method
         self._shuffle = shuffle
         self._cache_after_first = cache_after_first
         self._cache = []
@@ -72,11 +74,16 @@ class BucketBatcher(Batcher):
 
     def _to_matrix(self, instances: List[Tuple[np.ndarray, np.ndarray, Instance]]) -> Tuple[np.ndarray, np.ndarray, List[Instance]]:
         X, Y, insts = zip(*instances)
-        return np.concatenate(X), np.concatenate(Y), list(insts)
+        if self._batch_method == 'concat':
+            return np.concatenate(X), np.concatenate(Y), list(insts)
+        elif self._batch_method == 'array':
+            return np.array(X), np.concatenate(Y), list(insts)
+        else:
+            raise ValueError('Unknown batch method')
             
     def _get_vectors(self, inst: Instance) -> Tuple[np.ndarray, np.ndarray]:
         if self._vectorizer:
             return self._vectorizer.vectorize_input(inst.x), self._vectorizer.vectorize_label(inst.y)
         else:
-            return inst.x, inst.y
+            return inst.x, np.array([[inst.y]])
         
