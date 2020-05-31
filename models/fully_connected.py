@@ -3,23 +3,23 @@ from typing import Tuple, List, Dict, Any
 import numpy as np
 
 from ml.models import Model
+from ml.models.layered_model import LayeredModel
 from ml.modules.initializers import Initializer, RandomInitializer
 from ml.modules.activation_functions import linear, softmax, sigmoid
 from ml.modules.regularizers import Regularizer
 
-class FullyConnectedANN(Model):
+class FullyConnectedANN(LayeredModel):
     def __init__(self, 
         input_dim: int,
         layers: List[Tuple[int, str]],
         weight_initializer: Initializer = RandomInitializer(-0.01, 0.01),
         regularizer: Regularizer = None
     ): 
+        super(FullyConnectedANN, self).__init__()
         self._input_dim = input_dim
         self._regularizer = regularizer
 
         assert len(layers) > 0
-
-        self._layers = []
 
         for i, l in enumerate(layers):
             if i == 0: # if its the first layer...
@@ -27,40 +27,13 @@ class FullyConnectedANN(Model):
             else: # Must not be the first layer.
                 layer_input_dim=self._layers[-1].output_dim
 
-            self._layers.append(
+            self.add_layer(
                 FullyConnectedLayer(
                     input_dim=layer_input_dim,
                     output_dim=l[0],
                     weight_initializer=weight_initializer,
                     activation=l[1]
                 ))
-
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        h = X
-        for l in self._layers:
-            h = l.predict(h)
-        return h
-
-    def backward(self, loss: np.ndarray) -> None:
-        dl = loss
-        for l in reversed(self._layers):
-            dl = l.backward(dl)
-
-    @property
-    def parameters(self) -> Dict[str, Any]:
-        rv = {}
-        for i, l in enumerate(self._layers):
-            for k, p in l.parameters.items():
-                rv[f'layer_{i}_{k}'] = p
-        return rv
-
-    @property
-    def gradients(self) -> Dict[str, Any]:
-        rv = {}
-        for i, l in enumerate(self._layers):
-            for k, p in l.gradients.items():
-                rv[f'layer_{i}_{k}'] = p
-        return rv
 
 class FullyConnectedLayer(Model):
     def __init__(self, 
