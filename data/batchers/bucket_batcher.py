@@ -75,5 +75,8 @@ class BucketBatcher(Batcher):
         return np.concatenate(X), np.concatenate(Y), list(insts)
             
     def _get_vectors(self, inst: Instance) -> Tuple[np.ndarray, np.ndarray]:
-        return self._vectorizer.vectorize_input(inst.x), self._vectorizer.vectorize_label(inst.y)
+        if self._vectorizer:
+            return self._vectorizer.vectorize_input(inst.x), self._vectorizer.vectorize_label(inst.y)
+        else:
+            return inst.x, inst.y
         

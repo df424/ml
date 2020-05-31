@@ -63,25 +63,33 @@ class Trainer:
                 update_model=True,
             )
 
-            self._train(
-                batcher=self._dev_batcher,
-                losses=self._dev_losses,
-                metrics=self._dev_metrics,
-                update_model=False,
-            )
+            # Only run the dev set if we were given a dev set batcher to work with.
+            if self._dev_batcher:
+                self._train(
+                    batcher=self._dev_batcher,
+                    losses=self._dev_losses,
+                    metrics=self._dev_metrics,
+                    update_model=False,
+                )
 
-            # Handle patience stuff to abort training early...
-            if min_dev_loss <= self._dev_losses[-1]:
-                patience_counter += 1
-            else:
-                patience_counter = 0
-                min_dev_loss = self._dev_losses[-1]
+                # Handle patience stuff to abort training early...
+                if min_dev_loss <= self._dev_losses[-1]:
+                    patience_counter += 1
+                else:
+                    patience_counter = 0
+                    min_dev_loss = self._dev_losses[-1]
 
-            if(patience_counter >= self._patience):
-                print(f'Out of patience.  Dev loss has not decreased in {self._patience} epochs.')
-                return
+                if(patience_counter >= self._patience):
+                    print(f'Out of patience.  Dev loss has not decreased in {self._patience} epochs.')
+                    return
 
-            pbar.set_description(f'TRAINING: Epoch=[{i+1}/{self._epochs}], Training Loss={self._train_losses[-1]:.3f}, Dev Loss={self._dev_losses[-1]:.3f}')
+            # Create the description string for the progress bar.
+            description = f'TRAINING: Epoch=[{i+1}/{self._epochs}], Training Loss={self._train_losses[-1]:.3f}'
+            # If we have a dev set print its loss as well.
+            if self._dev_batcher:
+                description += f', Dev Loss={self._dev_losses[-1]:.3f}'
+            # Actually update the progress bar. 
+            pbar.set_description(description)
             pbar.update()
     
     def _train(self, 

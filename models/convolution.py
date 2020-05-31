@@ -16,6 +16,7 @@ class ConvolutionalLayer2D(Model):
         self._kernel_shape = kernel_shape
         self._num_kernels = num_kernels
         self._mode = mode
+        self._cache = {}
         self._parameters = {}
         self._gradients = {}
 
@@ -25,6 +26,8 @@ class ConvolutionalLayer2D(Model):
             self._parameters['K'] = initializer.initialize(self._parameters['K'])
 
     def predict(self, X: np.ndarray) -> np.ndarray:
+        self._cache['X'] = X
+
         channels = []
 
         for kernel in self._parameters['K']:
@@ -33,7 +36,21 @@ class ConvolutionalLayer2D(Model):
         return np.array(channels)
 
     def backward(self, loss: np.ndarray) -> None:
-        pass
+        # Loss should be the same size as our filters...
+        assert(loss.shape == self._parameters['K'].shape)
+
+        # Get our input X.
+        X = self._cache['X']
+
+        # Create a tensor to store our gradients we know it will be the same size as our filters.
+        grads = np.zeros(loss.shape)
+
+        # Iterate over our filters and compute the gradient for each one.
+        for i, l in enumerate(loss):
+            grads[i] = convolve2d(X, l, mode=self._mode)
+
+        # Store our gradients in the cache so that the optimizer can do the updating.
+        self._gradients['K'] = grads
 
     @property
     def parameters(self) -> Dict[str, Any]:
